@@ -13,6 +13,7 @@
 #include "2019302130011Doc.h"
 #include "2019302130011View.h"
 
+#include "CSetCharDlg.h"
 #include<atlbase.h>
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -37,6 +38,11 @@ BEGIN_MESSAGE_MAP(CMy2019302130011View, CView)
 	ON_COMMAND(ID_DRAW_PNCIRCLE, &CMy2019302130011View::OnDrawPncircle)
 	ON_COMMAND(ID_CURVE_BEZIER, &CMy2019302130011View::OnCurveBezier)
 	ON_WM_LBUTTONDBLCLK()
+	ON_COMMAND(ID_SET_CHAR, &CMy2019302130011View::OnSetChar)
+	ON_COMMAND(ID_TRANS_MOVE, &CMy2019302130011View::OnTransMove)
+	ON_COMMAND(ID_TRANS_SYMMETRY, &CMy2019302130011View::OnTransSymmetry)
+	ON_COMMAND(ID_FILL_SEED, &CMy2019302130011View::OnFillSeed)
+	ON_COMMAND(ID_FILL_EDGE, &CMy2019302130011View::OnFillEdge)
 END_MESSAGE_MAP()
 
 // CMy2019302130011View 构造/析构
@@ -120,14 +126,27 @@ void CMy2019302130011View::OnLButtonDown(UINT nFlags, CPoint point)
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
 	CMy2019302130011Doc* pDoc = GetDocument(); //获得文档类指针
 	CClientDC ht(this); //定义当前绘图设备
+
+	/*以下三句未添加的可能没用*/
+	OnPrepareDC(&ht);
+	ht.DPtoLP(&point);
+	ht.SetROP2(R2_NOT); //设置异或方式
+
+	
 	if (MenuID == 1) { //DDA直线
 		if (PressNum == 0) { //第一次按键将第一点保留在文档类数组中
 			pDoc->group[PressNum] = point;
-			mPointOrign = point; mPointOld = point;;//记录第一点
+			mPointOrign = point; 
+			mPointOld = point;;//记录第一点
 			PressNum++;
 			SetCapture(); //强行滞留鼠标，滞留的鼠标只能画点；
 		}
 		else if (PressNum == 1) { //第二次按键保留第二点，用文档类画线
+			//下面两句可能要到时候重写个橡皮条函数
+			ht.MoveTo(mPointOrign);
+			ht.LineTo(mPointOld);//擦旧线
+
+
 			pDoc->group[PressNum] = point;
 			PressNum = 0; //程序画图
 			pDoc->DDALine(&ht);
@@ -144,13 +163,20 @@ void CMy2019302130011View::OnLButtonDown(UINT nFlags, CPoint point)
 			mPointOld = point;//记录第一点
 			SetCapture();
 		}
-
+		
 		else if (PressNum == 1 && MenuID == 3) {//第二次按键调用文档类画圆程序画图
+			ht.SelectStockObject(NULL_BRUSH);//画空心圆
+			int r = (int)sqrt((1.0 * mPointOrign.x - mPointOld.x) * (1.0 * mPointOrign.x - mPointOld.x) + (mPointOrign.y - mPointOld.y) * (mPointOrign.y - mPointOld.y));
+			ht.Ellipse(mPointOrign.x - r, mPointOrign.y - r, mPointOrign.x + r, mPointOrign.y + r);//擦旧圆
 			PressNum = 0;
 			pDoc->BCircle(&ht, mPointOrign, point);
 			ReleaseCapture();
 		}
+
 		else if (PressNum == 1 && MenuID == 4) {//第二次按键调用画圆程序画图
+			ht.SelectStockObject(NULL_BRUSH);//画空心圆
+			int r = (int)sqrt((1.0 * mPointOrign.x - mPointOld.x) * (1.0 * mPointOrign.x - mPointOld.x) + (mPointOrign.y - mPointOld.y) * (mPointOrign.y - mPointOld.y));
+			ht.Ellipse(mPointOrign.x - r, mPointOrign.y - r, mPointOrign.x + r, mPointOrign.y + r);//擦旧圆
 			PressNum = 0;
 			pDoc->PNCircle(&ht, mPointOrign, point); 
 			ReleaseCapture();
@@ -180,6 +206,81 @@ void CMy2019302130011View::OnLButtonDown(UINT nFlags, CPoint point)
 			}
 		}
 	}
+
+
+	if (MenuID == 11) {//平移
+		if (PressNum == 0) {
+			PressNum++;
+			mPointOrign = point;
+			mPointOld = point;//记录第一点
+			SetCapture();
+		}
+		else if (PressNum == 1) { //根据两点间距计算平移量
+			for (int i = 0; i < pDoc->PointNum; i++)//根据平移量计算新图形坐标
+			{
+				pDoc->group[i].x += point.x - mPointOrign.x;
+				pDoc->group[i].y += point.y - mPointOrign.y; 
+			}
+			ht.MoveTo(mPointOrign);//擦除橡皮筋
+			ht.LineTo(point);
+			pDoc->DrawGraph(&ht);//生成新图形
+			ReleaseCapture();
+			PressNum = 0;
+		}
+	}
+
+	if (MenuID == 15) {//对称变换
+		if (PressNum == 0) {
+			PressNum++;
+			mPointOrign = point;
+			mPointOld = point;//记录第一点
+			SetCapture();
+		}
+		else if (PressNum == 1) {
+			pDoc->Symmetry(mPointOrign, point);//进行对称变换
+			pDoc->DrawGraph(&ht);//生成新图形
+			ReleaseCapture();
+			PressNum = 0;
+		}
+	}
+
+
+	if (MenuID == 20) {//种子填充:画边界
+		if (PressNum == 0) {
+			mPointOrign = point;
+			mPointOld = point;
+			mPointOld1 = point;//记录第一点
+			PressNum++;
+			SetCapture();
+		}
+		else {
+			ht.MoveTo(mPointOrign);//擦除橡皮筋
+			ht.LineTo(point);
+			pDoc->group[0] = mPointOrign;//借助DDA直线函数画边界
+			pDoc->group[1] = point;
+			pDoc->DDALine(&ht);
+			mPointOrign = point;
+			mPointOld = point;
+			PressNum++;
+		}
+	}
+
+	if (MenuID == 21) {//确定种子点，填充
+		pDoc->SeedFill(&ht, point);
+		PressNum = 0; 
+		MenuID = 20;//设置决定顶点操作方式
+	}
+
+	if (MenuID == 22) {//边缘填充选顶点
+		pDoc->group[PressNum++] = point;
+		pDoc->PointNum ++;
+		mPointOrign = point;
+		mPointOld = point;
+		SetCapture();
+	}
+
+
+
 	CView::OnLButtonDown(nFlags, point);
 }
 
@@ -191,6 +292,8 @@ void CMy2019302130011View::OnRButtonDown(UINT nFlags, CPoint point)
 	OnPrepareDC(&ht);
 	ht.DPtoLP(&point);
 
+	ht.SetROP2(R2_NOT);  //改成异或画法
+
 	if (MenuID == 5 && pDoc->PointNum > 3) {
 		pDoc->Bezier(&ht, 1);//绘制Bezier函数
 		MenuID = 6; //将下面的操作改为修改控制点位置
@@ -200,11 +303,47 @@ void CMy2019302130011View::OnRButtonDown(UINT nFlags, CPoint point)
 		PressNum = 0;
 	}
 
+
+	if (MenuID == 20 && PressNum > 0) {//种子填充
+		ht.MoveTo(mPointOrign);//擦除橡皮筋
+		ht.LineTo(point);
+
+		pDoc->group[0] = mPointOld1;//封闭多边形
+		pDoc->group[1] = mPointOrign;
+		pDoc->DDALine(&ht);  //最后一条线
+		PressNum = 0; 
+		MenuID = 21;//改变操作方式为种子点选取
+		ReleaseCapture();
+	}
+
+	if (MenuID == 22) {//边缘填充选点结束
+		ht.MoveTo(mPointOrign);//擦除橡皮筋
+		ht.LineTo(point);
+
+		pDoc->group[PressNum] = pDoc->group[0];
+		pDoc->PointNum ++;
+		ht.MoveTo(pDoc->group[PressNum - 1]);
+		ht.LineTo(pDoc->group[0]);  //画出最后一条线（黑色默认）
+		
+		for (int i = 0; i < PressNum; i++) //擦除了所有的线
+			ht.LineTo(pDoc->group[i + 1]);
+
+		pDoc->EdgeFill(&ht);
+		PressNum = 0;
+		pDoc->PointNum = 0;
+		ReleaseCapture();
+	}
+
+
+
+
 	CView::OnRButtonDown(nFlags, point);
 }
 
 
-//鼠标移动时的响应函数
+/*
+*					 鼠标移动
+*/
 void CMy2019302130011View::OnMouseMove(UINT nFlags, CPoint point)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
@@ -223,11 +362,16 @@ void CMy2019302130011View::OnMouseMove(UINT nFlags, CPoint point)
 	sprintf_s(p1, "%4d", yy); //转化为字符串
 	m_wndStatusBar.SetPaneText(3, CString(p1), TRUE); //在第3个区域显示y坐标
 	
-	//CPen pen(0, 0, RGB(255, 255, 0));//定义一支新笔
-	//CPen* pOldPen = pDC.SelectObject(&pen);//绘图设备选新笔，
-	////同时保留旧笔
 
-	if (MenuID == 1 && PressNum == 1) {
+	// 直线的橡皮条
+	if ((MenuID == 1  || //DDA
+		 MenuID == 11 || //平移
+		 MenuID == 15 || //对称
+		 MenuID == 20 || //种子填充
+		 MenuID == 22 || //边缘填充
+		 MenuID == 23) &&  //扫描线填充
+		 PressNum > 0) //对于种子填充上面的其实PressNum==1
+	{
 		if (mPointOld != point) {
 			pDC.MoveTo(mPointOrign); 
 			pDC.LineTo(mPointOld);//擦旧线
@@ -237,6 +381,7 @@ void CMy2019302130011View::OnMouseMove(UINT nFlags, CPoint point)
 		}
 	}
 
+	//对于圆的橡皮条
 	if ((MenuID == 3 || MenuID == 4) && PressNum == 1) {
 		pDC.SelectStockObject(NULL_BRUSH);//画空心圆
 		if (mPointOld != point) {
@@ -269,10 +414,13 @@ void CMy2019302130011View::OnMouseMove(UINT nFlags, CPoint point)
 
 
 
-	//pDC.SelectObject(pOldPen);//恢复旧笔
 	CView::OnMouseMove(nFlags, point);
 }
 
+
+/*
+*					 鼠标左键双击
+*/
 void CMy2019302130011View::OnLButtonDblClk(UINT nFlags, CPoint point)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
@@ -297,6 +445,9 @@ void CMy2019302130011View::OnLButtonDblClk(UINT nFlags, CPoint point)
 
 	CView::OnLButtonDblClk(nFlags, point);
 }
+
+
+
 
 
 void CMy2019302130011View::OnDrawDdaline()
@@ -330,3 +481,55 @@ void CMy2019302130011View::OnCurveBezier()
 
 
 
+
+
+void CMy2019302130011View::OnSetChar()
+{
+	// TODO: 在此添加命令处理程序代码
+	CDC* pDC = GetDC();
+	CSetCharDlg dlg;
+	if (dlg.DoModal() == IDOK)
+	{
+		CFont* pfntOld = pDC->SelectObject(&dlg.m_fnt);//保存旧字体
+		pDC->SetTextColor(dlg.m_clrText);//设置颜色
+		pDC->TextOut(dlg.m_nX, dlg.m_nY, dlg.m_strString);//画到屏幕上
+		pDC->SelectObject(pfntOld);//还原旧字体
+	}
+	ReleaseDC(pDC);
+}
+
+
+void CMy2019302130011View::OnTransMove()
+{
+	// TODO: 在此添加命令处理程序代码
+	CMy2019302130011Doc* pDoc = GetDocument();//获得文档类指针
+	CClientDC pDC(this);
+	OnPrepareDC(&pDC);
+	pDoc->GenerateGraph(&pDC);//调用文档类函数在屏幕上生成图形
+	PressNum = 0; MenuID = 11;
+}
+
+
+void CMy2019302130011View::OnTransSymmetry()
+{
+	// TODO: 在此添加命令处理程序代码
+	CMy2019302130011Doc* pDoc = GetDocument();//获得文档类指针
+	CClientDC pDC(this);
+	OnPrepareDC(&pDC); 
+	pDoc->GenerateGraph(&pDC);
+	PressNum = 0; MenuID = 15;
+}
+
+
+void CMy2019302130011View::OnFillSeed()
+{
+	// TODO: 在此添加命令处理程序代码
+	PressNum = 0; MenuID = 20;
+}
+
+
+void CMy2019302130011View::OnFillEdge()
+{
+	// TODO: 在此添加命令处理程序代码
+	PressNum = 0; MenuID = 22;
+}

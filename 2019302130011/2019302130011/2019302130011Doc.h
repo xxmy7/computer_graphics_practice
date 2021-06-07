@@ -14,8 +14,10 @@ protected: // 仅从序列化创建
 
 // 特性
 public:
-	CPoint group[100]; //定义数组
-	int PointNum;
+	CPoint group[100]{}; //定义数组
+	int PointNum = 0;
+	COLORREF m_crColor;//保存图形颜色
+
 
 // 操作
 public:
@@ -24,7 +26,16 @@ public:
 	void PNCircle(CClientDC* DCPoint, CPoint p1, CPoint p2);
 	void Bezier(CClientDC* DCPoint, int mode);
 	void Bezier_4(CClientDC* pDC, int mode, CPoint p1, CPoint p2, CPoint p3, CPoint p4);
-// 重写
+
+	void GenerateGraph(CClientDC* DCPoint);
+	void DrawGraph(CClientDC* DCPoint);
+
+	void Symmetry(CPoint p1, CPoint p2);
+	void SeedFill(CClientDC* DCPoint, CPoint seedpoint);
+	void EdgeFill(CClientDC* pDC);
+	
+	
+	// 重写
 public:
 	virtual BOOL OnNewDocument();
 	virtual void Serialize(CArchive& ar);
@@ -51,4 +62,7 @@ protected:
 	// 用于为搜索处理程序设置搜索内容的 Helper 函数
 	void SetSearchContent(const CString& value);
 #endif // SHARED_HANDLERS
+
+public:
+	afx_msg void OnSetColor();
 };

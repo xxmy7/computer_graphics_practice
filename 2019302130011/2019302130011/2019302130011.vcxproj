@@ -186,6 +186,7 @@
     <ClInclude Include="2019302130011.h" />
     <ClInclude Include="2019302130011Doc.h" />
     <ClInclude Include="2019302130011View.h" />
+    <ClInclude Include="CSetCharDlg.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="MainFrm.h" />
     <ClInclude Include="pch.h" />
@@ -196,6 +197,7 @@
     <ClCompile Include="2019302130011.cpp" />
     <ClCompile Include="2019302130011Doc.cpp" />
     <ClCompile Include="2019302130011View.cpp" />
+    <ClCompile Include="CSetCharDlg.cpp" />
     <ClCompile Include="MainFrm.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

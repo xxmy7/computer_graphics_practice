@@ -11,6 +11,7 @@ protected: // 仅从序列化创建
 	int MenuID, PressNum; //用于判断是哪种命令
 	int SaveNumber;
 	CPoint mPointOrign, mPointOld;
+	CPoint mPointOld1; //用于种子填充保留第一个顶点
 
 	CMy2019302130011View() noexcept;
 	DECLARE_DYNCREATE(CMy2019302130011View)
@@ -53,6 +54,11 @@ public:
 	afx_msg void OnDrawPncircle();
 	afx_msg void OnCurveBezier();
 	afx_msg void OnLButtonDblClk(UINT nFlags, CPoint point);
+	afx_msg void OnSetChar();
+	afx_msg void OnTransMove();
+	afx_msg void OnTransSymmetry();
+	afx_msg void OnFillSeed();
+	afx_msg void OnFillEdge();
 };
 
 #ifndef _DEBUG  // 2019302130011View.cpp 中的调试版本
