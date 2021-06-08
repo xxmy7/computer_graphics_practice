@@ -43,6 +43,10 @@ BEGIN_MESSAGE_MAP(CMy2019302130011View, CView)
 	ON_COMMAND(ID_TRANS_SYMMETRY, &CMy2019302130011View::OnTransSymmetry)
 	ON_COMMAND(ID_FILL_SEED, &CMy2019302130011View::OnFillSeed)
 	ON_COMMAND(ID_FILL_EDGE, &CMy2019302130011View::OnFillEdge)
+	ON_COMMAND(ID_FILL_SCANLINE, &CMy2019302130011View::OnFillScanline)
+	ON_COMMAND(ID_CUT_CS, &CMy2019302130011View::OnCutCs)
+	ON_COMMAND(ID_CUT_POLYGON, &CMy2019302130011View::OnCutPolygon)
+	ON_COMMAND(ID_CUT_CIRCLE, &CMy2019302130011View::OnCutCircle)
 END_MESSAGE_MAP()
 
 // CMy2019302130011View 构造/析构
@@ -155,7 +159,9 @@ void CMy2019302130011View::OnLButtonDown(UINT nFlags, CPoint point)
 		}
 	}
 
-	if (MenuID == 3 || MenuID == 4) {//Bresenham圆 和 正负法圆
+	if (MenuID == 3 ||  //Bresenham圆
+		MenuID == 4 ||  //正负法圆
+		MenuID == 33) { //圆裁剪 
 		if (PressNum == 0) {//第一次按键将第一点保留在mPointOrign
 			pDoc->group[PressNum] = point;
 			PressNum++;
@@ -168,6 +174,7 @@ void CMy2019302130011View::OnLButtonDown(UINT nFlags, CPoint point)
 			ht.SelectStockObject(NULL_BRUSH);//画空心圆
 			int r = (int)sqrt((1.0 * mPointOrign.x - mPointOld.x) * (1.0 * mPointOrign.x - mPointOld.x) + (mPointOrign.y - mPointOld.y) * (mPointOrign.y - mPointOld.y));
 			ht.Ellipse(mPointOrign.x - r, mPointOrign.y - r, mPointOrign.x + r, mPointOrign.y + r);//擦旧圆
+			
 			PressNum = 0;
 			pDoc->BCircle(&ht, mPointOrign, point);
 			ReleaseCapture();
@@ -182,6 +189,17 @@ void CMy2019302130011View::OnLButtonDown(UINT nFlags, CPoint point)
 			ReleaseCapture();
 		}
 
+		else if (PressNum == 1 && MenuID == 33)//圆裁剪
+		{
+			ht.SelectStockObject(NULL_BRUSH);//画空心圆
+			int r = (int)sqrt((1.0 * mPointOrign.x - mPointOld.x) * (1.0 * mPointOrign.x - mPointOld.x) + (mPointOrign.y - mPointOld.y) * (mPointOrign.y - mPointOld.y));
+			ht.Ellipse(mPointOrign.x - r, mPointOrign.y - r, mPointOrign.x + r, mPointOrign.y + r);//擦旧圆
+
+			pDoc->group[PressNum] = point;
+			PressNum = 0;
+			pDoc->CircleCut(&ht, mPointOrign, point);
+			ReleaseCapture();
+		}
 	}
 
 	if (MenuID == 5) {//Bezier曲线选点并做十字标志
@@ -271,7 +289,9 @@ void CMy2019302130011View::OnLButtonDown(UINT nFlags, CPoint point)
 		MenuID = 20;//设置决定顶点操作方式
 	}
 
-	if (MenuID == 22) {//边缘填充选顶点
+	if (MenuID == 22 || //边缘填充选顶点
+		MenuID == 23 || //扫描线
+		MenuID == 25) { //多边形裁剪
 		pDoc->group[PressNum++] = point;
 		pDoc->PointNum ++;
 		mPointOrign = point;
@@ -279,6 +299,20 @@ void CMy2019302130011View::OnLButtonDown(UINT nFlags, CPoint point)
 		SetCapture();
 	}
 
+	if (MenuID == 24) {//Cohen-sutherland裁剪算法
+		if (PressNum == 0) {
+			mPointOrign = point;
+			mPointOld = point;
+			PressNum++;
+			SetCapture();
+		}
+		else
+		{
+			pDoc->CohenSutherland(&ht, mPointOrign, point);
+			ReleaseCapture();
+			PressNum = 0;
+		}
+	}
 
 
 	CView::OnLButtonDown(nFlags, point);
@@ -334,7 +368,46 @@ void CMy2019302130011View::OnRButtonDown(UINT nFlags, CPoint point)
 		ReleaseCapture();
 	}
 
+	if (MenuID == 23) { //扫描线
+		ht.MoveTo(mPointOrign);//擦除橡皮筋
+		ht.LineTo(point);
 
+		pDoc->group[PressNum] = pDoc->group[0];//封闭多边形
+		ht.MoveTo(pDoc->group[PressNum - 1]);//擦除
+		ht.LineTo(pDoc->group[0]);
+		for (int i = 0; i < PressNum; i++)//擦除
+			ht.LineTo(pDoc->group[i + 1]);
+
+		CPen pen(PS_SOLID, 1, RGB(0, 255, 0));//设置多边形边界颜色（即画笔）
+		CPen* pOldPen = ht.SelectObject(&pen); 
+		
+		CBrush brush(pDoc->m_crColor); //设置多边形填充颜色（即画刷）
+		CBrush* pOldBrush = ht.SelectObject(&brush);
+
+		ht.SetROP2(R2_COPYPEN); //设置直接画方式
+		ht.Polygon(pDoc->group, PressNum);//调用多边形扫描线填充函数
+		ht.SelectObject(pOldPen);//恢复系统的画笔、画刷颜色设置
+		ht.SelectObject(pOldBrush);
+		
+		//初始化参数，为下一次操作做准备
+		PressNum = 0;
+		pDoc->PointNum = 0;
+		ReleaseCapture();
+	}
+
+	if (MenuID == 25) {//多边形裁剪
+		ht.MoveTo(mPointOrign);//擦除橡皮筋
+		ht.LineTo(point);
+
+		pDoc->group[PressNum] = pDoc->group[0];//将第一个顶点作为最后一个顶点
+		pDoc->PointNum = PressNum; //记录顶点数量
+		ht.MoveTo(pDoc->group[PressNum - 1]);
+		ht.LineTo(pDoc->group[0]);
+		pDoc->PolygonCut(&ht);
+		PressNum = 0;
+		pDoc->PointNum = 0;
+		ReleaseCapture();
+	}
 
 
 	CView::OnRButtonDown(nFlags, point);
@@ -369,8 +442,10 @@ void CMy2019302130011View::OnMouseMove(UINT nFlags, CPoint point)
 		 MenuID == 15 || //对称
 		 MenuID == 20 || //种子填充
 		 MenuID == 22 || //边缘填充
-		 MenuID == 23) &&  //扫描线填充
-		 PressNum > 0) //对于种子填充上面的其实PressNum==1
+		 MenuID == 23 || //扫描线填充
+		 MenuID == 24 || //Cohen-sutherland裁剪算
+		 MenuID == 25)   //多边形裁剪
+		&& PressNum > 0) //对于种子填充上面的其实PressNum==1
 	{
 		if (mPointOld != point) {
 			pDC.MoveTo(mPointOrign); 
@@ -382,7 +457,7 @@ void CMy2019302130011View::OnMouseMove(UINT nFlags, CPoint point)
 	}
 
 	//对于圆的橡皮条
-	if ((MenuID == 3 || MenuID == 4) && PressNum == 1) {
+	if ((MenuID == 3 || MenuID == 4 || MenuID == 33) && PressNum == 1) {
 		pDC.SelectStockObject(NULL_BRUSH);//画空心圆
 		if (mPointOld != point) {
 			r = (int)sqrt((1.0*mPointOrign.x - mPointOld.x) * (1.0 * mPointOrign.x - mPointOld.x) + (mPointOrign.y - mPointOld.y) * (mPointOrign.y-mPointOld.y));
@@ -532,4 +607,47 @@ void CMy2019302130011View::OnFillEdge()
 {
 	// TODO: 在此添加命令处理程序代码
 	PressNum = 0; MenuID = 22;
+}
+
+
+void CMy2019302130011View::OnFillScanline()
+{
+	// TODO: 在此添加命令处理程序代码
+	CMy2019302130011Doc* pDoc = GetDocument();//获得文档类指针
+	pDoc->PointNum = 0;//实际上不需要该变量，但为了借鉴边缘填充的部分功能，与边缘填充保持一致
+	PressNum = 0; MenuID = 23;
+}
+
+
+void CMy2019302130011View::OnCutCs()
+{
+	// TODO: 在此添加命令处理程序代码
+	CMy2019302130011Doc* pDoc = GetDocument();//获得文档类指针
+	CClientDC pDC(this);
+	OnPrepareDC(&pDC);
+	pDoc->DrawWindow(&pDC);
+	PressNum = 0; MenuID = 24;
+}
+
+
+void CMy2019302130011View::OnCutPolygon()
+{
+	// TODO: 在此添加命令处理程序代码
+	CMy2019302130011Doc* pDoc = GetDocument();//获得文档类指针
+	CClientDC pDC(this);
+	OnPrepareDC(&pDC);
+	pDoc->DrawWindow(&pDC);
+	PressNum = 0; MenuID = 25;
+}
+
+
+void CMy2019302130011View::OnCutCircle()
+{
+	// TODO: 在此添加命令处理程序代码
+	CMy2019302130011Doc* pDoc = GetDocument();//获得文档类指针
+	CClientDC pDC(this);
+	OnPrepareDC(&pDC);
+	pDoc->DrawWindow(&pDC);
+	PressNum = 0; MenuID = 33;
+
 }

@@ -14,6 +14,17 @@
 
 #include <propkey.h>
 
+#define XMIN 100//定义的窗口参数符号，符号只要在被使用前定义即可
+#define XMAX 400
+#define YMIN 100
+#define YMAX 300
+
+#define LEFT 1//定义的几个常数符号
+#define RIGHT 2
+#define BOTTOM 4
+#define TOP 8
+
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -24,6 +35,8 @@ IMPLEMENT_DYNCREATE(CMy2019302130011Doc, CDocument)
 
 BEGIN_MESSAGE_MAP(CMy2019302130011Doc, CDocument)
 	ON_COMMAND(ID_SET_COLOR, &CMy2019302130011Doc::OnSetColor)
+//	ON_COMMAND(ID_FILL_SCANLINE, &CMy2019302130011Doc::OnFillScanline)
+//ON_COMMAND(ID_CUT_POLYGON, &CMy2019302130011Doc::OnCutPolygon)
 END_MESSAGE_MAP()
 
 
@@ -32,7 +45,6 @@ END_MESSAGE_MAP()
 CMy2019302130011Doc::CMy2019302130011Doc() noexcept
 {
 	// TODO: 在此添加一次性构造代码
-	m_crColor = RGB(0, 0, 255);
 }
 
 CMy2019302130011Doc::~CMy2019302130011Doc()
@@ -103,20 +115,37 @@ void CMy2019302130011Doc::DDALine(CClientDC* DCPoint)
 
 void CMy2019302130011Doc::BCircle(CClientDC* DCPoint, CPoint p1, CPoint p2)
 {
+	CRect rc;
+	GetClientRect(AfxGetMainWnd()->m_hWnd, &rc);
+	BCircle(DCPoint, &rc, p1, p2);
+}
+
+void CMy2019302130011Doc::BCircle(CClientDC* DCPoint, CRect* rc, CPoint p1, CPoint p2)
+{
 	int r, d, x, y, x0, y0;
-	DCPoint->SetROP2(R2_COPYPEN);//绘图方法为直接画
-	r = (int)sqrt(((1.0 * p1.x - p2.x) * (1.0 * p1.x - p2.x) + (1.0 * p1.y - p2.y) * (1.0 * p1.y - p2.y)));
-	x = 0; y = r; d = 3 - 2 * r; x0 = p1.x; y0 = p1.y;
+	DCPoint->SetROP2(R2_COPYPEN);//直接绘图
+	r = (int)sqrt(((1.0 * p1.x - p2.x) * (1.0 * p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y)) * 1.0);
+	x = 0; y = r; d = 3 - 2 * r; 
+	x0 = p1.x; 
+	y0 = p1.y;
 	while (x < y || x == y)
 	{
-		DCPoint->SetPixel(x + x0, y + y0, m_crColor);
-		DCPoint->SetPixel(-x + x0, y + y0, m_crColor);
-		DCPoint->SetPixel(x + x0, -y + y0, m_crColor);
-		DCPoint->SetPixel(-x + x0, -y + y0, m_crColor);
-		DCPoint->SetPixel(y + x0, x + y0, m_crColor);
-		DCPoint->SetPixel(-y + x0, x + y0, m_crColor);
-		DCPoint->SetPixel(y + x0, -x + y0, m_crColor);
-		DCPoint->SetPixel(-y + x0, -x + y0, m_crColor);
+		if (rc->PtInRect(CPoint(x + x0, y + y0)))	//判断点是否在矩形框内
+			DCPoint->SetPixel(x + x0, y + y0, m_crColor);
+		if (rc->PtInRect(CPoint(-x + x0, y + y0)))
+			DCPoint->SetPixel(-x + x0, y + y0, m_crColor);
+		if (rc->PtInRect(CPoint(x + x0, -y + y0)))
+			DCPoint->SetPixel(x + x0, -y + y0, m_crColor);
+		if (rc->PtInRect(CPoint(-x + x0, -y + y0)))
+			DCPoint->SetPixel(-x + x0, -y + y0, m_crColor);
+		if (rc->PtInRect(CPoint(y + x0, x + y0)))
+			DCPoint->SetPixel(y + x0, x + y0, m_crColor);
+		if (rc->PtInRect(CPoint(-y + x0, x + y0)))
+			DCPoint->SetPixel(-y + x0, x + y0, m_crColor);
+		if (rc->PtInRect(CPoint(y + x0, -x + y0)))
+			DCPoint->SetPixel(y + x0, -x + y0, m_crColor);
+		if (rc->PtInRect(CPoint(-y + x0, -x + y0)))
+			DCPoint->SetPixel(-y + x0, -x + y0, m_crColor);
 		x = x + 1;
 		if (d < 0 || d == 0)
 		{
@@ -124,7 +153,8 @@ void CMy2019302130011Doc::BCircle(CClientDC* DCPoint, CPoint p1, CPoint p2)
 		}
 		else
 		{
-			y = y - 1; d = d + 4 * (x - y) + 10;
+			y = y - 1;
+			d = d + 4 * (x - y) + 10;
 		}
 	}
 }
@@ -385,6 +415,253 @@ void CMy2019302130011Doc::EdgeFill(CClientDC* pDC)
 	pDC->SelectObject(pOldPen);
 }
 
+void CMy2019302130011Doc::DrawWindow(CClientDC* pDC)
+{
+	CPen pen;
+	pen.CreatePen(PS_SOLID, 2, RGB(0, 0, 255));
+	CPen* pOldPen = pDC->SelectObject(&pen); pDC->SetROP2(R2_COPYPEN);
+	pDC->MoveTo(XMIN, YMIN);
+	pDC->LineTo(XMAX, YMIN);
+	pDC->LineTo(XMAX, YMAX);
+	pDC->LineTo(XMIN, YMAX);
+	pDC->LineTo(XMIN, YMIN);
+	pDC->SelectObject(pOldPen);
+
+}
+
+void CMy2019302130011Doc::CohenSutherland(CClientDC* pDC, CPoint p1, CPoint p2)
+{
+	int code1, code2, code, x, y, x1, y1, x2, y2;
+	pDC->SetROP2(R2_COPYPEN);
+	CPen Pen;
+	Pen.CreatePen(PS_SOLID, 2, RGB(255, 0, 0)); // 
+	CPen* OldPen = pDC->SelectObject(&Pen);
+	x1 = p1.x; y1 = p1.y;
+	x2 = p2.x; y2 = p2.y;
+	code1 = encode(x1, y1);//对端点编码
+	code2 = encode(x2, y2);
+	while (code1 != 0 || code2 != 0)
+	{
+		if ((code1 & code2) != 0) return;//完全不可见
+		code = code1;
+		if (code1 == 0) code = code2;
+		if ((LEFT & code) != 0)//求线段与窗口左边的交点
+		{
+			x = XMIN;
+			y = y1 + (y2 - y1) * (x - x1) / (x2 - x1);
+		}
+		else if ((RIGHT & code) != 0)//求线段与窗口右边的交点
+		{
+			x = XMAX;
+			y = y1 + (y2 - y1) * (x - x1) / (x2 - x1);
+		}
+		else if ((BOTTOM & code) != 0)//求线段与窗口底边的交点
+		{
+			y = YMIN;
+			x = x1 + (x2 - x1) * (y - y1) / (y2 - y1);
+		}
+		else if ((TOP & code) != 0)//求线段与窗口顶边的交点
+		{
+			y = YMAX;
+			x = x1 + (x2 - x1) * (y - y1) / (y2 - y1);
+		}
+		if (code == code1)
+		{
+			x1 = x; y1 = y; code1 = encode(x, y);
+		}
+		else
+		{
+			x2 = x; y2 = y; code2 = encode(x, y);
+		}
+	}
+	pDC->MoveTo(x1, y1);
+	pDC->LineTo(x2, y2);
+	pDC->SelectObject(OldPen);
+}
+
+int CMy2019302130011Doc::encode(int x, int y)
+{
+	int c;
+	c = 0;
+	if (x < XMIN)  c = c + LEFT;
+	else if (x > XMAX)  c = c + RIGHT;
+	if (y < YMIN)  c = c + BOTTOM;
+	else if (y > YMAX)  c = c + TOP;
+	return c;
+}
+
+void CMy2019302130011Doc::PolygonCut(CClientDC* pDC)
+{
+	CPen pen;
+	pen.CreatePen(0, 2, RGB(255, 0, 0));
+	CPen* OldPen = pDC->SelectObject(&pen); 
+	pDC->SetROP2(R2_COPYPEN);
+	EdgeClipping(0); //用第一条窗口边进行裁剪
+	EdgeClipping(1); //用第二条窗口边进行裁剪
+	EdgeClipping(2); //用第三条窗口边进行裁剪
+	EdgeClipping(3); //用第四条窗口边进行裁剪
+	pDC->MoveTo(group[0]);//绘制裁剪多边形
+	for (int i = 1; i <= PointNum; i++)
+		pDC->LineTo(group[i]);
+	pDC->SelectObject(OldPen);
+}
+
+void CMy2019302130011Doc::EdgeClipping(int linecode)
+{
+	float x, y;
+	int n, i, number1;
+	CPoint q[200];
+	number1 = 0;
+	if (linecode == 0)//x=XMIN
+	{
+		for (n = 0; n < PointNum; n++)
+		{
+			if (group[n].x < XMIN && group[n + 1].x < XMIN)//外外，不输出
+			{
+			}
+			if (group[n].x >= XMIN && group[n + 1].x >= XMIN)//里里，输出后点
+			{
+				q[number1++] = group[n + 1];
+			}
+			if (group[n].x >= XMIN && group[n + 1].x < XMIN)//里外，输出交点
+			{
+				y = group[n].y + (float)(group[n + 1].y - group[n].y) /
+					(float)(group[n + 1].x - group[n].x) *
+					(float)(XMIN - group[n].x); q[number1].x = XMIN;
+				q[number1++].y = (int)y;
+			}
+			if (group[n].x < XMIN && group[n + 1].x >= XMIN)//外里，输出交点、后点
+			{
+				y = group[n].y + (float)(group[n + 1].y - group[n].y) /
+					(float)(group[n + 1].x - group[n].x) *
+					(float)(XMIN - group[n].x); q[number1].x = XMIN;
+				q[number1++].y = (int)y;
+				q[number1++] = group[n + 1];
+			}
+		}
+		for (i = 0; i < number1; i++)
+		{
+			group[i] = q[i]; 
+		}
+		group[number1] = q[0];
+		PointNum = number1; number1 = 0;
+	}
+	if (linecode == 1)//y=YMAX
+	{
+		for (n = 0; n < PointNum; n++)
+		{
+			if (group[n].y >= YMAX && group[n + 1].y >= YMAX)//外外，不输出
+			{
+			}
+			if (group[n].y < YMAX && group[n + 1].y < YMAX)//里里，输出后点
+			{
+				q[number1++] = group[n + 1];
+			}
+			if (group[n].y < YMAX && group[n + 1].y >= YMAX)//里外，输出交点
+			{
+				x = group[n].x + (float)(group[n + 1].x - group[n].x) /
+					(float)(group[n + 1].y - group[n].y) *
+					(float)(YMAX - group[n].y);
+				q[number1].x = (int)x;
+				q[number1++].y = YMAX;
+			}
+			if (group[n].y >= YMAX && group[n + 1].y < YMAX)//外里，输出交点、后点
+			{
+				x = group[n].x + (float)(group[n + 1].x - group[n].x) /
+					(float)(group[n + 1].y - group[n].y) *
+					(float)(YMAX - group[n].y);
+				q[number1].x = (int)x;
+				q[number1++].y = YMAX;
+				q[number1++] = group[n + 1];
+			}
+		}
+		for (i = 0; i < number1; i++)
+		{
+			group[i] = q[i];
+		}
+		group[number1] = q[0];
+		PointNum = number1; number1 = 0;
+	}
+	if (linecode == 2)//x=XMAX
+	{
+		for (n = 0; n < PointNum; n++)
+		{
+			if (group[n].x >= XMAX && group[n + 1].x >= XMAX) {}//外外，不输出
+			if (group[n].x < XMAX && group[n + 1].x < XMAX)//里里，输出后点
+			{
+				q[number1++] = group[n + 1];
+			}
+			if (group[n].x < XMAX && group[n + 1].x >= XMAX)//里外，输出交点
+			{
+				y = group[n].y + (float)(group[n + 1].y - group[n].y) /
+					(float)(group[n + 1].x - group[n].x) *
+					(float)(XMAX - group[n].x);
+				q[number1].x = XMAX;
+				q[number1++].y = (int)y;
+			}
+			if (group[n].x >= XMAX && group[n + 1].x < XMAX)//外里，输出交点、后点
+			{
+				y = group[n].y + (float)(group[n + 1].y - group[n].y) /
+					(float)(group[n + 1].x - group[n].x) *
+					(float)(XMAX - group[n].x); 
+				q[number1].x = XMAX;
+				q[number1++].y = (int)y;
+				q[number1++] = group[n + 1];
+			}
+		}
+		for (i = 0; i < number1; i++)
+		{
+			group[i] = q[i];
+		}
+		group[number1] = q[0];
+		PointNum = number1; number1 = 0;
+	}
+	if (linecode == 3)//y=YMIN
+	{
+		for (int n = 0; n < PointNum; n++)
+		{
+			if (group[n].y < YMIN && group[n + 1].y < YMIN)//外外，不输出
+			{
+			}
+			if (group[n].y >= YMIN && group[n + 1].y >= YMIN)//里里，输出后点
+			{
+				q[number1++] = group[n + 1];
+			}
+			if (group[n].y >= YMIN && group[n + 1].y < YMIN)//里外，输出交点
+			{
+				x = group[n].x + (float)(group[n + 1].x - group[n].x) /
+					(float)(group[n + 1].y - group[n].y) * 
+					(float)(YMIN - group[n].y); 
+				q[number1].x = (int)x;
+				q[number1++].y = YMIN;
+			}
+			if (group[n].y < YMIN && group[n + 1].y >= YMIN)//外里，输出交点、后点
+			{
+				x = group[n].x + (float)(group[n + 1].x - group[n].x) /
+					(float)(group[n + 1].y - group[n].y) *
+					(float)(YMIN - group[n].y); 
+				q[number1].x = (int)x;
+				q[number1++].y = YMIN;
+				q[number1++] = group[n + 1];
+			}
+		}
+		for (i = 0; i < number1; i++)
+		{
+			group[i] = q[i];
+		}
+		group[number1] = q[0];
+		PointNum = number1; 
+		number1 = 0;
+	}
+
+}
+
+void CMy2019302130011Doc::CircleCut(CClientDC* DCPoint, CPoint p1, CPoint p2)
+{
+	CRect rc(XMIN, YMIN, XMAX, YMAX);
+	BCircle((CClientDC*)(DCPoint), &rc, p1, p2);
+}
+
 BOOL CMy2019302130011Doc::OnNewDocument()
 {
 	if (!CDocument::OnNewDocument())
@@ -492,3 +769,5 @@ void CMy2019302130011Doc::OnSetColor()
 	if (dlg.DoModal() == IDOK)
 		m_crColor = dlg.GetColor();
 }
+
+

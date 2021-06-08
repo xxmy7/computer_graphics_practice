@@ -59,6 +59,10 @@ public:
 	afx_msg void OnTransSymmetry();
 	afx_msg void OnFillSeed();
 	afx_msg void OnFillEdge();
+	afx_msg void OnFillScanline();
+	afx_msg void OnCutCs();
+	afx_msg void OnCutPolygon();
+	afx_msg void OnCutCircle();
 };
 
 #ifndef _DEBUG  // 2019302130011View.cpp 中的调试版本

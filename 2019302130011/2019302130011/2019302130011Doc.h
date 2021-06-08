@@ -16,13 +16,14 @@ protected: // 仅从序列化创建
 public:
 	CPoint group[100]{}; //定义数组
 	int PointNum = 0;
-	COLORREF m_crColor;//保存图形颜色
+	COLORREF m_crColor = RGB(255, 0, 0);;//保存图形颜色
 
 
 // 操作
 public:
 	void DDALine(CClientDC* DCPoint);
 	void BCircle(CClientDC* DCPoint, CPoint p1, CPoint p2);
+	void BCircle(CClientDC* DCPoint, CRect* rc, CPoint p1, CPoint p2); //裁剪所用判断
 	void PNCircle(CClientDC* DCPoint, CPoint p1, CPoint p2);
 	void Bezier(CClientDC* DCPoint, int mode);
 	void Bezier_4(CClientDC* pDC, int mode, CPoint p1, CPoint p2, CPoint p3, CPoint p4);
@@ -34,7 +35,15 @@ public:
 	void SeedFill(CClientDC* DCPoint, CPoint seedpoint);
 	void EdgeFill(CClientDC* pDC);
 	
-	
+	//CohenSuthreland算法用
+	void DrawWindow(CClientDC* DCPoint);
+	void CohenSutherland(CClientDC* DCPoint, CPoint p1, CPoint p2);
+	int encode(int x, int y);
+
+	void PolygonCut(CClientDC* DCPoint);
+	void EdgeClipping(int linecode);
+
+	void CircleCut(CClientDC* DCPoint, CPoint p1, CPoint p2);
 	// 重写
 public:
 	virtual BOOL OnNewDocument();
