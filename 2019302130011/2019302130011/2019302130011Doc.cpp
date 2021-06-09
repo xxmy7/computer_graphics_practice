@@ -113,6 +113,146 @@ void CMy2019302130011Doc::DDALine(CClientDC* DCPoint)
 	}
 }
 
+void CMy2019302130011Doc::MidLine(CClientDC* DCPoint)
+{
+	int x, y, x0, y0, x1, y1;
+	DCPoint->SetROP2(R2_COPYPEN);//绘图方法为直接画，直线端点由鼠标确定后存放在group[0]、group[1]
+	x0 = group[0].x; y0 = group[0].y;
+	x1 = group[1].x; y1 = group[1].y;
+	if (x0 == x1 && y0 == y1) return;	
+	if (x0 == x1)	//垂直线
+	{
+		if (y0 > y1)
+		{
+			x = y0; y0 = y1; y1 = x;
+		}
+		for (x = y0; x <= y1; x++)
+		{
+			DCPoint->SetPixel(x0, x, m_crColor);
+		}
+		return;
+	}
+	if (y0 == y1)  //水平线
+	{
+		if (x0 > x1)
+		{
+			x = x0; x0 = x1; x1 = x;
+		}
+		for (x = x0; x <= x1; x++)
+		{
+			DCPoint->SetPixel(x, y0, m_crColor);
+		}
+		return;
+	}
+	//斜率小于等于1，即deltax>=deltay
+	if (abs(x1 - x0) >= abs(y1 - y0))
+	{
+		if (x0 > x1) //交换起始、终止点
+		{
+			int temp;
+			temp = x0; x0 = x1; x1 = temp;
+			temp = y0; y0 = y1; y1 = temp;
+		}
+		if (y1 - y0 > 0)
+		{
+			int a, b/*直线方程一般形式的参数*/, d1, d2/*增量*/, d/*增量*/;
+			a = y0 - y1; b = x1 - x0;
+			d = a + a + b;
+			d1 = a + a; d2 = a + a + b + b;
+			x = x0; y = y0;
+			DCPoint->SetPixel(x, y, m_crColor);
+			for (x = x0 + 1; x < x1; x++)
+			{
+				if (d >= 0)
+				{
+					d += d1;
+				}
+				else
+				{
+					y += 1;
+					d += d2;
+				}
+				DCPoint->SetPixel(x, y, m_crColor);
+			}
+		}
+		else
+		{
+			int a, b/*直线方程一般形式的参数*/, d1, d2/*增量*/, d/*增量*/;
+			a = y0 - y1; b = x1 - x0;
+			d = a + a - b;
+			d1 = a + a; d2 = a + a - b - b;
+			x = x0; y = y0;
+			DCPoint->SetPixel(x, y, m_crColor);
+			for (x = x0 + 1; x < x1; x++)
+			{
+				if (d >= 0)
+				{
+					y -= 1;
+					d += d2;
+				}
+				else
+				{
+					d += d1;
+				}
+				DCPoint->SetPixel(x, y, m_crColor);
+			}
+		}
+	}
+	else //斜率大于1，即deltax>=deltay
+	{
+		if (x0 > x1) //交换起始、终止点
+		{
+			int t;
+			t = x0; x0 = x1; x1 = t;
+			t = y0; y0 = y1; y1 = t;
+		}
+		if (y1 - y0 > 0)
+		{
+			int a, b/*直线方程一般形式的参数*/, d1, d2/*增量*/, d/*增量*/;
+			a = y0 - y1; b = x1 - x0;
+			d = a + b + b;
+			d1 = b + b; d2 = a + a + b + b;
+			x = x0; y = y0;
+			DCPoint->SetPixel(x, y, m_crColor);
+			for (y = y0 + 1; y < y1; y++)
+			{
+				if (d >= 0)
+				{
+					x += 1;
+					d += d2;
+				}
+				else
+				{
+					d += d1;
+				}
+				DCPoint->SetPixel(x, y, m_crColor);
+			}
+		}
+		else
+		{
+			int a, b/*直线方程一般形式的参数*/, d1, d2/*增量*/, d/*增量*/;
+			a = y0 - y1; b = x1 - x0;
+			d = a - b - b;
+			d1 = -b - b; d2 = a + a - b - b;
+			x = x0; y = y0;
+			DCPoint->SetPixel(x, y, m_crColor);
+			for (y = y0 - 1; y > y1; y--)
+			{
+				if (d >= 0)
+				{
+					d += d1;
+				}
+				else
+				{
+					x += 1;
+					d += d2;
+				}
+				DCPoint->SetPixel(x, y, m_crColor);
+			}
+		}
+	}
+}
+
 void CMy2019302130011Doc::BCircle(CClientDC* DCPoint, CPoint p1, CPoint p2)
 {
 	CRect rc;
@@ -214,7 +354,7 @@ void CMy2019302130011Doc::Bezier_4(CClientDC* DCPoint, int mode, CPoint p1, CPoi
 	if (mode) //mode=1时，以异或方式画可擦除的黑色曲线，用于调整形状
 	{
 		DCPoint->SetROP2(R2_NOT);
-		pen.CreatePen(PS_SOLID, 1, m_crColor);
+		pen.CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
 	}
 	else //mode=0时，画红色的正式曲线
 	{
@@ -236,6 +376,121 @@ void CMy2019302130011Doc::Bezier_4(CClientDC* DCPoint, int mode, CPoint p1, CPoi
 		DCPoint->LineTo(p);
 	}
 	DCPoint->SelectObject(pOldPen);
+}
+
+void CMy2019302130011Doc::BSample(CClientDC* DCPoint, int mode)
+{
+	CPoint p[1000];//设置一个数组存储完整的曲线控制点
+	int i, j;
+	i = 0; j = 0;
+	p[i++] = group[j++];//先将第1，2号点存入数组
+	p[i++] = group[j++];
+	while (j <= PointNum - 2)//存入点
+	{
+		p[i++] = group[j++];
+		p[i++] = group[j++];
+	};
+	for (j = 0; j < i - 3; j ++)//控制点分组，分别生成各段曲线 
+	{
+		BSample_4(DCPoint, mode, p[j], p[j + 1], p[j + 2], p[j + 3]);
+	}
+}
+
+void CMy2019302130011Doc::BSample_4(CClientDC* DCPoint, int mode, CPoint p1, CPoint p2, CPoint p3, CPoint p4)
+{
+	int i;
+	CPoint p;
+	double t1, t2, t3, t4, dt;
+	CPen pen;
+	int n = 40.0;
+	if (mode)//mode=1时，以异或方式画可擦除的黑色曲线，用于调整形状
+	{
+		DCPoint->SetROP2(R2_NOT);
+		pen.CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
+	}
+	else//mode=0时，画红色的正式曲线
+	{
+		DCPoint->SetROP2(R2_COPYPEN);
+		pen.CreatePen(PS_SOLID, 1, m_crColor);
+	}
+	CPen* pOldPen = DCPoint->SelectObject(&pen);
+	dt = 1.0 / n;//参数t的间隔，分40段，即用40段直线表示一段曲线
+	p.x = (int)(p1.x / 6.0 + p2.x * 2.0 / 3 + p3.x / 6.0);
+	p.y = (int)(p1.y / 6.0 + p2.y * 2.0 / 3 + p3.y / 6.0);
+	DCPoint->MoveTo(p);//移到起点
+	for (i = 1; i <= n; i++)
+	{
+		/*t1 = (1.0 - i*dt)* (1.0 - i * dt)*(1.0 - i * dt) / 6.0;
+		t2 = (3.0 *(i * dt)* (i * dt)* (i * dt)- 6.0* (i * dt) * (i * dt) +4.0)/6.0;
+		t3 = (-3.0 * (i * dt) * (i * dt) * (i * dt) + 3.0* (i * dt) * (i * dt)+ 3.0* (i * dt) +1)/6.0;
+		t4 = (i * dt) * (i * dt)* (i * dt) / 6.0;*/
+		double t = i * dt;
+		t1 = (t * t * t * (-1) + 3 * t * t - 3 * t + 1) / 6;
+		t2 = (3 * t * t * t - 6 * t * t + 4) / 6;
+		t3 = (3 * t * t * t * (-1) + 3 * t * t + 3 * t + 1) / 6;
+		t4 = t * t * t / 6;
+		p.x = (int)(t1 * p1.x + t2 * p2.x + t3 * p3.x + t4 * p4.x);
+		p.y = (int)(t1 * p1.y + t2 * p2.y + t3 * p3.y + t4 * p4.y);
+		DCPoint->LineTo(p);
+	}
+	
+	DCPoint->SelectObject(pOldPen);
+}
+
+void CMy2019302130011Doc::Hermite(CClientDC* DCPoint, int mode)
+{
+	double a[4][4] = { {-4.5,13.5,-13.5,4.5},{9,-22.5,18,-4.5},{-5.5,9,-4.5,1},{1,0,0,0} };//矩阵系数
+	double b[4][2];//控制点
+	for (int i = 0; i < 4; i++)
+	{
+		b[i][0] = group[i].x; b[i][1] = group[i].y;
+	}
+	Caculate(a, b);
+
+	CPen pen;
+	if (mode)//mode=1时，以异或方式画可擦除的黑色曲线，用于调整形状
+	{
+		DCPoint->SetROP2(R2_NOT);
+		pen.CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
+	}
+	else//mode=0时，画红色的正式曲线
+	{
+		DCPoint->SetROP2(R2_COPYPEN);
+		pen.CreatePen(PS_SOLID, 1, m_crColor);
+	}
+	CPen* pOldPen = DCPoint->SelectObject(&pen);
+	DCPoint->MoveTo(group[0].x, group[0].y);
+	for (double t = 0; fabs(t - 1) > 1e-8; t += 1.0 / 400)
+	{
+		int x = round(pow(t, 3) * result[0][0] + pow(t, 2) * result[1][0] + t * result[2][0] + result[3][0]);
+		int y = round(pow(t, 3) * result[0][1] + pow(t, 2) * result[1][1] + t * result[2][1] + result[3][1]);
+		DCPoint->LineTo(x, y);
+	}
+	DCPoint->SelectObject(pOldPen);
+	pen.DeleteObject();
+}
+
+void CMy2019302130011Doc::Caculate(double a[4][4], double b[4][2])
+{
+	int i, j, k;
+	for (i = 0; i < 4; i++)
+	{
+		for (j = 0; j < 2; j++)
+		{
+			result[i][j] = 0;
+		}
+	}
+	for (i = 0; i < 2; i++)
+	{
+		for (j = 0; j < 4; j++)
+		{
+			for (k = 0; k < 4; k++)
+			{
+				result[j][i] += a[j][k] * b[k][i];
+			}
+
+		}
+	}
 }
 
 void CMy2019302130011Doc::GenerateGraph(CClientDC* DCPoint)
@@ -260,7 +515,53 @@ void CMy2019302130011Doc::DrawGraph(CClientDC* DCPoint)
 	for (i = 1; i < PointNum; i++)
 		DCPoint->LineTo(group[i]);
 	DCPoint->SelectObject(pOldPen);
+}
 
+void CMy2019302130011Doc::Rotate(CPoint p1, CPoint p2)
+{
+	float a[3][3], b[3][3], c[3][3] = { NULL };
+	float sa, ca, x, y;
+	int i;
+	ca = (p2.x - p1.x) / sqrt(((p2.x - p1.x) * (p2.x - p1.x) + (p2.y - p1.y) * (p2.y - p1.y)));  //cosa （代码修正点）
+	sa = (p2.y - p1.y) / sqrt(((p2.x - p1.x) * (p2.x - p1.x) + (p2.y - p1.y) * (p2.y - p1.y)));  //sina
+	//矩阵1																						
+	c[0][0] = 1; c[0][1] = 0; c[0][2] = 0;
+	c[1][0] = 0; c[1][1] = 1; c[1][2] = 0;
+	c[2][0] = 150; c[2][1] = 150; c[2][2] = 1;
+	//矩阵2
+	b[0][0] = ca; b[0][1] = sa; b[0][2] = 0;
+	b[1][0] = -sa; b[1][1] = ca; b[1][2] = 0;
+	b[2][0] = 0; b[2][1] = 0; b[2][2] = 1;
+	//矩阵1、2合并
+	a[0][0] = b[0][0] * c[0][0] + b[0][1] * c[1][0] + b[0][2] * c[2][0];
+	a[0][1] = b[0][0] * c[0][1] + b[0][1] * c[1][1] + b[0][2] * c[2][1];
+	a[0][2] = b[0][0] * c[0][2] + b[0][1] * c[1][2] + b[0][2] * c[2][2];
+	a[1][0] = b[1][0] * c[0][0] + b[1][1] * c[1][0] + b[1][2] * c[2][0];
+	a[1][1] = b[1][0] * c[0][1] + b[1][1] * c[1][1] + b[1][2] * c[2][1];
+	a[1][2] = b[1][0] * c[0][2] + b[1][1] * c[1][2] + b[1][2] * c[2][2];
+	a[2][0] = b[2][0] * c[0][0] + b[2][1] * c[1][0] + b[2][2] * c[2][0];
+	a[2][1] = b[2][0] * c[0][1] + b[2][1] * c[1][1] + b[2][2] * c[2][1];
+	a[2][2] = b[2][0] * c[0][2] + b[2][1] * c[1][2] + b[2][2] * c[2][2];
+	//矩阵3
+	b[0][0] = 1; b[0][1] = 0; b[0][2] = 0;
+	b[1][0] = 0; b[1][1] = 1; b[1][2] = 0;
+	b[2][0] = -150; b[2][1] = -150; b[2][2] = 1;
+	//矩阵1、2、3合并
+	c[0][0] = b[0][0] * a[0][0] + b[0][1] * a[1][0] + b[0][2] * a[2][0];
+	c[0][1] = b[0][0] * a[0][1] + b[0][1] * a[1][1] + b[0][2] * a[2][1];
+	c[0][2] = b[0][0] * a[0][2] + b[0][1] * a[1][2] + b[0][2] * a[2][2];
+	c[1][0] = b[1][0] * a[0][0] + b[1][1] * a[1][0] + b[1][2] * a[2][0];
+	c[1][1] = b[1][0] * a[0][1] + b[1][1] * a[1][1] + b[1][2] * a[2][1];
+	c[1][2] = b[1][0] * a[0][2] + b[1][1] * a[1][2] + b[1][2] * a[2][2];
+	c[2][0] = b[2][0] * a[0][0] + b[2][1] * a[1][0] + b[2][2] * a[2][0];
+	c[2][1] = b[2][0] * a[0][1] + b[2][1] * a[1][1] + b[2][2] * a[2][1];
+	c[2][2] = b[2][0] * a[0][2] + b[2][1] * a[1][2] + b[2][2] * a[2][2];
+	for (i = 0; i < PointNum; i++)  //利用复合矩阵对所有图形点坐标进行变换
+	{
+		x = c[0][0] * group[i].x + c[1][0] * group[i].y + c[2][0];
+		y = c[0][1] * group[i].x + c[1][1] * group[i].y + c[2][1];
+		group[i].x = x; group[i].y = y;
+	}
 }
 
 void CMy2019302130011Doc::Symmetry(CPoint p1, CPoint p2)
@@ -493,7 +794,7 @@ int CMy2019302130011Doc::encode(int x, int y)
 void CMy2019302130011Doc::PolygonCut(CClientDC* pDC)
 {
 	CPen pen;
-	pen.CreatePen(0, 2, RGB(255, 0, 0));
+	pen.CreatePen(0, 2, m_crColor);//RGB(255, 0, 0)
 	CPen* OldPen = pDC->SelectObject(&pen); 
 	pDC->SetROP2(R2_COPYPEN);
 	EdgeClipping(0); //用第一条窗口边进行裁剪
@@ -660,6 +961,147 @@ void CMy2019302130011Doc::CircleCut(CClientDC* DCPoint, CPoint p1, CPoint p2)
 {
 	CRect rc(XMIN, YMIN, XMAX, YMAX);
 	BCircle((CClientDC*)(DCPoint), &rc, p1, p2);
+}
+
+void CMy2019302130011Doc::CutMiddle(CClientDC* pDC, CPoint p1, CPoint p2)
+{
+	int x1, y1, x2, y2;
+	pDC->SetROP2(R2_COPYPEN);
+	CPen Pen;
+	Pen.CreatePen(PS_SOLID, 2, m_crColor);
+	CPen* OldPen = pDC->SelectObject(&Pen);
+	x1 = p1.x; y1 = p1.y;
+	x2 = p2.x; y2 = p2.y;
+
+	if (LineIsOutOfWindow(x1, y1, x2, y2))//如果现在就可以确定线段完全不可见，结束。
+		return;
+	p1 = FindNearestPoint(x1, y1, x2, y2);//从（X1，Y1）出发，寻找最近可见点
+	if (PointIsOutOfWindow(p1.x, p1.y))    //找到的"可见点"不可见，结束。
+		return;
+	p2 = FindNearestPoint(x2, y2, x1, y1);//交换
+
+	pDC->MoveTo(p1.x, p1.y);  //画裁剪后的线段
+	pDC->LineTo(p2.x, p2.y);
+	pDC->SelectObject(OldPen);
+}
+
+bool CMy2019302130011Doc::LineIsOutOfWindow(int x1, int y1, int x2, int y2)
+{
+	if (x1 < XMIN && x2 < XMIN)
+		return true;
+	else if (x1 > XMAX && x2 > XMAX)
+		return true;
+	else if (y1 > YMAX && y2 > YMAX)
+		return true;
+	else if (y1 < YMIN && y2 < YMIN)
+		return true;
+	else
+		return false;
+}
+
+bool CMy2019302130011Doc::PointIsOutOfWindow(int x, int y)
+{
+	if (x < XMIN)
+		return true;
+	else if (x > XMAX)
+		return true;
+	else if (y > YMAX)
+		return true;
+	else if (y < YMIN)
+		return true;
+	else
+		return false;
+}
+
+POINT CMy2019302130011Doc::FindNearestPoint(int x1, int y1, int x2, int y2)
+{
+	//(x1,y1)是起始端点，(x2,y2)是终点
+	int x = 0, y = 0; 
+	POINT p;
+	if (!PointIsOutOfWindow(x1, y1))//如果起点可见，直接返回起点
+	{
+		p.x = x1;
+		p.y = y1;
+		return p;
+	}
+	while (!(abs(x1 - x2) <= 1 && abs(y1 - y2) <= 1))
+	{   //判断是否起、终点足够靠近
+		x = (x1 + x2) / 2; y = (y1 + y2) / 2;
+		if (LineIsOutOfWindow(x1, y1, x, y))
+		{
+			x1 = x; y1 = y;//在外，起始点移到中点
+		}
+		else
+		{
+			x2 = x; y2 = y;//不在外，终点移到中点
+		}
+	}
+
+
+	if (PointIsOutOfWindow(x1, y1))
+	{
+		p.x = x2; p.y = y2;//起始点在外，返回终点
+	}
+	else
+	{
+		p.x = x1; p.y = y1;//否则，返回起始点
+	}
+	return p;
+}
+
+void CMy2019302130011Doc::CutLiang(CClientDC* pDC, CPoint p1, CPoint p2)
+{
+	//规定（x1,y1）为起点
+	int x1, y1, x2, y2;
+	pDC->SetROP2(R2_COPYPEN);
+	CPen Pen;
+	Pen.CreatePen(PS_SOLID, 2, m_crColor);
+	CPen* OldPen = pDC->SelectObject(&Pen);
+	x1 = p1.x; y1 = p1.y;
+	x2 = p2.x; y2 = p2.y;
+
+	float tsx, tsy, tex, tey;//设置两个始边、两个终边对应T参数
+	if (x1 == x2)  //垂线
+	{
+		tsx = 0; tex = 1;
+	}
+	else if (x1 < x2)
+	{   // 条件满足，X方向的始边、终边随即确立，可直接计算对应参数
+		tsx = (float)(XMIN - x1) / (float)(x2 - x1);
+		tex = (float)(XMAX - x1) / (float)(x2 - x1);
+	}
+	else
+	{
+		tsx = (float)(XMAX - x1) / (float)(x2 - x1);
+		tex = (float)(XMIN - x1) / (float)(x2 - x1);
+	}
+	if (y1 == y2)  //水平线
+	{
+		tsy = 0; tey = 1;
+	}
+	else if (y1 < y2)
+	{   // 条件满足，Y方向的始边、终边随即确立，可直接计算对应参数
+		tsy = (float)(YMIN - y1) / (float)(y2 - y1);
+		tey = (float)(YMAX - y1) / (float)(y2 - y1);
+	}
+	else
+	{
+		tsy = (float)(YMAX - y1) / (float)(y2 - y1);
+		tey = (float)(YMIN - y1) / (float)(y2 - y1);
+	}
+	tsx = max(0, max(tsx, tsy));   
+	tex = min(1, min(tex, tey));
+	if (tsx < tex)     //该条件满足，才是可见的
+	{
+		int xx1, yy1, xx2, yy2;
+		xx1 = (int)(x1 + (x2 - x1) * tsx);
+		yy1 = (int)(y1 + (y2 - y1) * tsx);
+		xx2 = (int)(x1 + (x2 - x1) * tex);
+		yy2 = (int)(y1 + (y2 - y1) * tex);
+		pDC->MoveTo(xx1, yy1);  //画裁剪后的线段
+		pDC->LineTo(xx2, yy2);
+		pDC->SelectObject(OldPen);
+	}
 }
 
 BOOL CMy2019302130011Doc::OnNewDocument()

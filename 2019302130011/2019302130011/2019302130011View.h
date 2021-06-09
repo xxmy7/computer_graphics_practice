@@ -10,7 +10,7 @@ class CMy2019302130011View : public CView
 protected: // 仅从序列化创建
 	int MenuID, PressNum; //用于判断是哪种命令
 	int SaveNumber;
-	CPoint mPointOrign, mPointOld;
+	CPoint mPointOrigin, mPointOld;
 	CPoint mPointOld1; //用于种子填充保留第一个顶点
 
 	CMy2019302130011View() noexcept;
@@ -63,6 +63,13 @@ public:
 	afx_msg void OnCutCs();
 	afx_msg void OnCutPolygon();
 	afx_msg void OnCutCircle();
+	afx_msg void OnDrawMidline();
+	afx_msg void OnCurveBsample();
+	afx_msg void OnCurveHermite();
+	afx_msg void OnTransRotate();
+	afx_msg void OnTransZoom();
+	afx_msg void OnCutMiddle();
+	afx_msg void OnCutLiang();
 };
 
 #ifndef _DEBUG  // 2019302130011View.cpp 中的调试版本
