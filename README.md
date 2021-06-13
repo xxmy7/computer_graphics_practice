@@ -26,5 +26,5 @@ pdf为其中遇到的一些问题及解决办法。
 
  
 
-![img](F:\计算机图形学实习\README.assets\clip_image002.png)![img](F:\计算机图形学实习\README.assets\clip_image004.png)![img](F:\计算机图形学实习\README.assets\clip_image006.png)![img](F:\计算机图形学实习\README.assets\clip_image008.png)![img](F:\计算机图形学实习\README.assets\clip_image010.png) ![img](F:\计算机图形学实习\README.assets\clip_image012.png)
+![img](img\clip_image002.png)![img](\img\clip_image004.png)![img](img\clip_image006.png)![img](img\clip_image008.png)![img](img\clip_image010.png) ![img](img\clip_image012.png)
 
