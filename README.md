@@ -45,3 +45,6 @@ pdf为其中遇到的一些问题及解决办法。
 
 感谢<a href="https://github.com/xiaobaiwwl" target="_blank">wwl</a>实习期间的帮助！实习和考试复习一起搞太搞人了。
 
+-----
+后面有时间再补上操作说明，可以直接运行Debug里的exe文件来看效果，Eigen可能需要重新加入到项目里才能运行。
+
