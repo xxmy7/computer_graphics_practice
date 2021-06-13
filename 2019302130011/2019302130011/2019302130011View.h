@@ -4,7 +4,7 @@
 
 #pragma once
 
-
+#include"CPoint3d.h"
 class CMy2019302130011View : public CView
 {
 protected: // 仅从序列化创建
@@ -12,6 +12,8 @@ protected: // 仅从序列化创建
 	int SaveNumber;
 	CPoint mPointOrigin, mPointOld;
 	CPoint mPointOld1; //用于种子填充保留第一个顶点
+	CPoint3d mrotVec{};
+
 
 	CMy2019302130011View() noexcept;
 	DECLARE_DYNCREATE(CMy2019302130011View)
@@ -70,6 +72,11 @@ public:
 	afx_msg void OnTransZoom();
 	afx_msg void OnCutMiddle();
 	afx_msg void OnCutLiang();
+//	afx_msg void OnBlanking();
+	afx_msg void OnShadow();
+	afx_msg void OnDelete();
+	afx_msg void OnCube();
+	afx_msg void OnTriPyramid();
 };
 
 #ifndef _DEBUG  // 2019302130011View.cpp 中的调试版本

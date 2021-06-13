@@ -42,6 +42,12 @@
     <ClInclude Include="CSetCharDlg.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="CPoint3d.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CPolygon3d.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="2019302130011.cpp">
@@ -60,6 +66,12 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="CSetCharDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CPoint3d.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CPolygon3d.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

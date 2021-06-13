@@ -54,6 +54,11 @@ BEGIN_MESSAGE_MAP(CMy2019302130011View, CView)
 	ON_COMMAND(ID_TRANS_ZOOM, &CMy2019302130011View::OnTransZoom)
 	ON_COMMAND(ID_CUT_MIDDLE, &CMy2019302130011View::OnCutMiddle)
 	ON_COMMAND(ID_CUT_LIANG, &CMy2019302130011View::OnCutLiang)
+//	ON_COMMAND(ID_BLANKING, &CMy2019302130011View::OnBlanking)
+	ON_COMMAND(ID_SHADOW, &CMy2019302130011View::OnShadow)
+	ON_COMMAND(ID_DELETE, &CMy2019302130011View::OnDelete)
+	ON_COMMAND(ID_CUBE, &CMy2019302130011View::OnCube)
+	ON_COMMAND(ID_TRI_PYRAMID, &CMy2019302130011View::OnTriPyramid)
 END_MESSAGE_MAP()
 
 // CMy2019302130011View 构造/析构
@@ -78,14 +83,21 @@ BOOL CMy2019302130011View::PreCreateWindow(CREATESTRUCT& cs)
 
 // CMy2019302130011View 绘图
 
-void CMy2019302130011View::OnDraw(CDC* /*pDC*/)
+void CMy2019302130011View::OnDraw(CDC* pDC)
 {
 	CMy2019302130011Doc* pDoc = GetDocument();
 	ASSERT_VALID(pDoc);
 	if (!pDoc)
 		return;
-
 	// TODO: 在此处为本机数据添加绘制代码
+	if (MenuID == 99|| MenuID == 100) {
+		pDC->SetROP2(R2_COPYPEN);
+		if(MenuID==99)
+			pDoc->rotateAndDrawCube(&CClientDC(this), mrotVec, pDoc->doshadow);
+		else if(MenuID==100)
+			pDoc->rotateAndDrawTri(&CClientDC(this), mrotVec, pDoc->doshadow);
+	}
+
 }
 
 
@@ -154,7 +166,7 @@ void CMy2019302130011View::OnLButtonDown(UINT nFlags, CPoint point)
 			SetCapture(); //强行滞留鼠标，滞留的鼠标只能画点；
 		}
 		else if (PressNum == 1) { //第二次按键保留第二点，用文档类画线
-			//下面两句可能要到时候重写个橡皮条函数
+			//下面两句也可以重写个橡皮条函数
 			ht.MoveTo(mPointOrigin);
 			ht.LineTo(mPointOld);//擦旧线
 
@@ -258,18 +270,14 @@ void CMy2019302130011View::OnLButtonDown(UINT nFlags, CPoint point)
 		}
 	}
 
-	if (MenuID == 9 && pDoc->PointNum < 4)//曲线选点并做十个字标志
+	if (MenuID == 9)//Hermite曲线选点并做十个字标志
 	{
 		pDoc->group[pDoc->PointNum++] = point;
 		ht.MoveTo(point.x - 5, point.y);
 		ht.LineTo(point.x + 5, point.y);
 		ht.MoveTo(point.x, point.y - 5);
 		ht.LineTo(point.x, point.y + 5);
-		/*if (pDoc->PointNum > 1)
-		{
-			ht.MoveTo(pDoc->group[pDoc->PointNum - 2].x, pDoc->group[pDoc->PointNum - 2].y);
-			ht.LineTo(pDoc->group[pDoc->PointNum - 1].x, pDoc->group[pDoc->PointNum - 1].y);
-		}*/
+		
 
 		SetCapture();
 		PressNum = 1;
@@ -453,7 +461,16 @@ void CMy2019302130011View::OnLButtonDown(UINT nFlags, CPoint point)
 	}
 
 
-
+	if (MenuID == 88 ||
+		MenuID == 99 ||
+		MenuID == 100) {
+		if (PressNum == 0) { //第一次按键将第一点保留在文档类数组中
+			mPointOrigin = point;
+			mPointOld = point;;//记录第一点
+			PressNum++;
+			SetCapture(); //强行滞留鼠标，滞留的鼠标只能画点；
+		}
+	}
 
 
 	CView::OnLButtonDown(nFlags, point);
@@ -578,6 +595,11 @@ void CMy2019302130011View::OnRButtonDown(UINT nFlags, CPoint point)
 		ReleaseCapture();
 	}
 
+	if (MenuID == 99 || MenuID == 100) {
+		PressNum = 0;
+		pDoc->PointNum = 0;
+		ReleaseCapture();
+	}
 
 	CView::OnRButtonDown(nFlags, point);
 }
@@ -698,8 +720,21 @@ void CMy2019302130011View::OnMouseMove(UINT nFlags, CPoint point)
 		}
 	}
 
+	if ((MenuID == 88 ||
+		 MenuID == 99 ||
+		 MenuID == 100)
+		 && PressNum > 0) //
+	{
+		//mrotVec = CPoint3d(1.0*point.x - mPointOrigin.x, 1.0*point.y - mPointOrigin.y,rand()%200);
+		mrotVec = CPoint3d(rand(), rand(),rand()%200);
+		Invalidate(true);
+	}
+
 	CView::OnMouseMove(nFlags, point);
 }
+
+
+
 
 
 /*
@@ -946,4 +981,57 @@ void CMy2019302130011View::OnCutCircle()
 	pDoc->DrawWindow(&pDC);
 	PressNum = 0; MenuID = 33;
 
+}
+
+
+//void CMy2019302130011View::OnBlanking()
+//{
+//	// TODO: 在此添加命令处理程序代码
+//	CMy2019302130011Doc* pDoc = GetDocument();//获得文档类指针
+//	CClientDC pDC(this);
+//	OnPrepareDC(&pDC);
+//	PressNum = 0; MenuID = 88;
+//}
+
+
+void CMy2019302130011View::OnShadow()
+{
+	// TODO: 在此添加命令处理程序代码
+	CMy2019302130011Doc* pDoc = GetDocument();//获得文档类指针
+	CClientDC pDC(this);
+	OnPrepareDC(&pDC);
+	pDoc->doshadow = true;
+	PressNum = 0;
+}
+
+
+void CMy2019302130011View::OnDelete()
+{
+	// TODO: 在此添加命令处理程序代码
+	Invalidate(true);
+	PressNum = 0; MenuID = 90;
+}
+
+
+void CMy2019302130011View::OnCube()
+{
+	// TODO: 在此添加命令处理程序代码
+	CMy2019302130011Doc* pDoc = GetDocument();//获得文档类指针
+	CClientDC pDC(this);
+	OnPrepareDC(&pDC);
+	pDoc->doshadow = false;
+	pDoc->initcube();
+	PressNum = 0; MenuID = 99;
+}
+
+
+void CMy2019302130011View::OnTriPyramid()
+{
+	// TODO: 在此添加命令处理程序代码
+	CMy2019302130011Doc* pDoc = GetDocument();//获得文档类指针
+	CClientDC pDC(this);
+	OnPrepareDC(&pDC);
+	pDoc->doshadow = false;
+	pDoc->inittri_pyramid();
+	PressNum = 0; MenuID = 100;
 }

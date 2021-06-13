@@ -56,13 +56,25 @@
 #define ID_32813                        32813
 #define ID_CUT_CIRCLE                   32814
 #define ID_CURVE_BSAMPLE                32815
+#define ID_32816                        32816
+#define ID_32817                        32817
+#define ID_                             32818
+#define ID_BLANKING                     32819
+#define ID_SHADOW                       32820
+#define ID_32821                        32821
+#define ID_DELETE                       32822
+#define ID_32823                        32823
+#define ID_32824                        32824
+#define ID_CUBE                         32825
+#define ID_TRI_                         32826
+#define ID_TRI_PYRAMID                  32827
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        312
-#define _APS_NEXT_COMMAND_VALUE         32816
+#define _APS_NEXT_COMMAND_VALUE         32828
 #define _APS_NEXT_CONTROL_VALUE         1016
 #define _APS_NEXT_SYMED_VALUE           310
 #endif

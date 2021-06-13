@@ -13,6 +13,8 @@
 #include "2019302130011Doc.h"
 
 #include <propkey.h>
+#include <Eigen/Dense>
+#include <vector>
 
 #define XMIN 100//定义的窗口参数符号，符号只要在被使用前定义即可
 #define XMAX 400
@@ -35,8 +37,6 @@ IMPLEMENT_DYNCREATE(CMy2019302130011Doc, CDocument)
 
 BEGIN_MESSAGE_MAP(CMy2019302130011Doc, CDocument)
 	ON_COMMAND(ID_SET_COLOR, &CMy2019302130011Doc::OnSetColor)
-//	ON_COMMAND(ID_FILL_SCANLINE, &CMy2019302130011Doc::OnFillScanline)
-//ON_COMMAND(ID_CUT_POLYGON, &CMy2019302130011Doc::OnCutPolygon)
 END_MESSAGE_MAP()
 
 
@@ -437,14 +437,72 @@ void CMy2019302130011Doc::BSample_4(CClientDC* DCPoint, int mode, CPoint p1, CPo
 	DCPoint->SelectObject(pOldPen);
 }
 
+//void CMy2019302130011Doc::Hermite(CClientDC* DCPoint, int mode)
+//{
+//	double a[4][4] = { {-4.5,13.5,-13.5,4.5},{9,-22.5,18,-4.5},{-5.5,9,-4.5,1},{1,0,0,0} };//矩阵系数
+//	double b[4][2];//控制点
+//	for (int i = 0; i < 4; i++)
+//	{
+//		b[i][0] = group[i].x; b[i][1] = group[i].y;
+//	}
+//	Caculate(a, b);
+//
+//	CPen pen;
+//	if (mode)//mode=1时，以异或方式画可擦除的黑色曲线，用于调整形状
+//	{
+//		DCPoint->SetROP2(R2_NOT);
+//		pen.CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
+//	}
+//	else//mode=0时，画红色的正式曲线
+//	{
+//		DCPoint->SetROP2(R2_COPYPEN);
+//		pen.CreatePen(PS_SOLID, 1, m_crColor);
+//	}
+//	CPen* pOldPen = DCPoint->SelectObject(&pen);
+//	DCPoint->MoveTo(group[0].x, group[0].y);
+//	for (double t = 0; fabs(t - 1) > 1e-8; t += 1.0 / 400)
+//	{
+//		int x = round(pow(t, 3) * result[0][0] + pow(t, 2) * result[1][0] + t * result[2][0] + result[3][0]);
+//		int y = round(pow(t, 3) * result[0][1] + pow(t, 2) * result[1][1] + t * result[2][1] + result[3][1]);
+//		DCPoint->LineTo(x, y);
+//	}
+//	DCPoint->SelectObject(pOldPen);
+//	pen.DeleteObject();
+//}
+
 void CMy2019302130011Doc::Hermite(CClientDC* DCPoint, int mode)
+{
+	CPoint p[1000];//设置一个数组存储完整的Bezier曲线控制点
+	int i, j;
+	i = 0, j = 0;
+	p[i++] = group[j++];//先将第1，2号点存入数组
+	p[i++] = group[j++];
+	while (j <= PointNum - 2)//存入奇、偶号点，生成并存入插入点
+	{
+		p[i++] = group[j++];
+		//p[i].x = (group[j].x + group[j - 1].x) / 2;
+		//p[i++].y = (group[j].y + group[j - 1].y) / 2;
+		p[i++] = group[j++];
+	};
+	for (j = 0; j < i - 3; j += 3)//控制点分组，分别生成各段曲线
+	{
+		Hermite_4(DCPoint, mode, p[j], p[j + 1], p[j + 2], p[j + 3]);
+	}
+}
+void CMy2019302130011Doc::Hermite_4(CClientDC* DCPoint, int mode, CPoint p1, CPoint p2, CPoint p3, CPoint p4)
 {
 	double a[4][4] = { {-4.5,13.5,-13.5,4.5},{9,-22.5,18,-4.5},{-5.5,9,-4.5,1},{1,0,0,0} };//矩阵系数
 	double b[4][2];//控制点
-	for (int i = 0; i < 4; i++)
-	{
-		b[i][0] = group[i].x; b[i][1] = group[i].y;
-	}
+
+	b[0][0] = p1.x;
+	b[0][1] = p1.y;
+	b[1][0] = p2.x;
+	b[1][1] = p2.y;
+	b[2][0] = p3.x;
+	b[2][1] = p3.y;
+	b[3][0] = p4.x;
+	b[3][1] = p4.y;
+	
 	Caculate(a, b);
 
 	CPen pen;
@@ -458,8 +516,9 @@ void CMy2019302130011Doc::Hermite(CClientDC* DCPoint, int mode)
 		DCPoint->SetROP2(R2_COPYPEN);
 		pen.CreatePen(PS_SOLID, 1, m_crColor);
 	}
+
 	CPen* pOldPen = DCPoint->SelectObject(&pen);
-	DCPoint->MoveTo(group[0].x, group[0].y);
+	DCPoint->MoveTo(p1);
 	for (double t = 0; fabs(t - 1) > 1e-8; t += 1.0 / 400)
 	{
 		int x = round(pow(t, 3) * result[0][0] + pow(t, 2) * result[1][0] + t * result[2][0] + result[3][0]);
@@ -469,6 +528,7 @@ void CMy2019302130011Doc::Hermite(CClientDC* DCPoint, int mode)
 	DCPoint->SelectObject(pOldPen);
 	pen.DeleteObject();
 }
+
 
 void CMy2019302130011Doc::Caculate(double a[4][4], double b[4][2])
 {
@@ -522,7 +582,7 @@ void CMy2019302130011Doc::Rotate(CPoint p1, CPoint p2)
 	float a[3][3], b[3][3], c[3][3] = { NULL };
 	float sa, ca, x, y;
 	int i;
-	ca = (p2.x - p1.x) / sqrt(((p2.x - p1.x) * (p2.x - p1.x) + (p2.y - p1.y) * (p2.y - p1.y)));  //cosa （代码修正点）
+	ca = (p2.x - p1.x) / sqrt(((p2.x - p1.x) * (p2.x - p1.x) + (p2.y - p1.y) * (p2.y - p1.y)));  //cosa 
 	sa = (p2.y - p1.y) / sqrt(((p2.x - p1.x) * (p2.x - p1.x) + (p2.y - p1.y) * (p2.y - p1.y)));  //sina
 	//矩阵1																						
 	c[0][0] = 1; c[0][1] = 0; c[0][2] = 0;
@@ -683,8 +743,12 @@ void CMy2019302130011Doc::EdgeFill(CClientDC* pDC)
 {
 	int i, xr, x1, y1, x2, y2, y;
 	float m, x;
+	COLORREF color;//异或后的图形颜色
+	BYTE r = GetRValue(m_crColor), g = GetGValue(m_crColor), b = GetBValue(m_crColor);
+	r = 255 - r, g = 255 - g, b = 255 - b;
+	color = RGB(r, g, b);
 	CPen pen;
-	pen.CreatePen(PS_SOLID, 1,RGB(0,255,255));//确定填充颜色，由该颜色与背景色异或混合而成
+	pen.CreatePen(PS_SOLID, 1, color);//确定填充颜色，由该颜色与背景色异或混合而成
 	pDC->SetROP2(R2_XORPEN);//绘图方法为异或
 	CPen* pOldPen = pDC->SelectObject(&pen);
 	xr = 0;
@@ -732,7 +796,7 @@ void CMy2019302130011Doc::DrawWindow(CClientDC* pDC)
 
 void CMy2019302130011Doc::CohenSutherland(CClientDC* pDC, CPoint p1, CPoint p2)
 {
-	int code1, code2, code, x, y, x1, y1, x2, y2;
+	int code1, code2, code, x = 0, y = 0, x1, y1, x2, y2;
 	pDC->SetROP2(R2_COPYPEN);
 	CPen Pen;
 	Pen.CreatePen(PS_SOLID, 2, RGB(255, 0, 0)); // 
@@ -1103,6 +1167,265 @@ void CMy2019302130011Doc::CutLiang(CClientDC* pDC, CPoint p1, CPoint p2)
 		pDC->SelectObject(OldPen);
 	}
 }
+
+void CMy2019302130011Doc::rotateAndDrawCube(CClientDC* pDC, const CPoint3d& rotVec, bool doshadow)
+{
+	mRotVec = mRotVec + rotVec;
+	mVertVec = rotate3d(mVertVec, mRotVec);
+
+	double xmin = -200, xmax = 700;
+	double ymin = -200, ymax = 700;
+	double zmin = -200, zmax = 700;
+
+	std::vector<CPoint3d> proj_ptVec = project_Points(mVertVec, xmin, xmax, ymin, ymax, zmin, zmax);
+	std::vector<CPoint3d> fitted_proj_ptVec = setFit(proj_ptVec);
+	std::vector<CPolygon3d> proj_polyVec = generateCubeFace(fitted_proj_ptVec);
+
+	if (doshadow) {
+		auto polyVec = generateCubeFace(mVertVec);
+		for (std::vector<CPolygon3d>::size_type i = 0; i < polyVec.size(); i++) {
+			proj_polyVec[i].visible = surfaceVisble(polyVec[i], CPoint3d(0, 0, 1));
+			proj_polyVec[i].color = phongLighting(polyVec[i], CPoint3d(0, 0, 1), m_crColor, CPoint3d(1, 1, 1));
+
+		}
+	}
+
+	drawPolyhedron(pDC, proj_polyVec, doshadow);
+
+}
+
+void CMy2019302130011Doc::rotateAndDrawTri(CClientDC* pDC, const CPoint3d& rotVec, bool doshadow)
+{
+	mRotVec = mRotVec + rotVec;
+	mVertVec = rotate3d(mVertVec, mRotVec);
+
+	double xmin = -200, xmax = 700;
+	double ymin = -200, ymax = 700;
+	double zmin = -200, zmax = 700;
+
+	std::vector<CPoint3d> proj_ptVec = project_Points(mVertVec, xmin, xmax, ymin, ymax, zmin, zmax);
+	std::vector<CPoint3d> fitted_proj_ptVec = setFit(proj_ptVec);
+	std::vector<CPolygon3d> proj_polyVec = generatetriFace(fitted_proj_ptVec);
+
+	if (doshadow) {
+		auto polyVec = generatetriFace(mVertVec);
+		for (std::vector<CPolygon3d>::size_type i = 0; i < polyVec.size(); i++) {
+			proj_polyVec[i].visible = surfaceVisble(polyVec[i], CPoint3d(0, 0, 1));
+			proj_polyVec[i].color = phongLighting(polyVec[i], CPoint3d(0, 0, 1), m_crColor, CPoint3d(1, 1, 1));
+
+		}
+	}
+
+	drawPolyhedron(pDC, proj_polyVec, doshadow);
+}
+
+void CMy2019302130011Doc::initcube()
+{
+	mVertVec = generateCubeVert();
+	mFaceVec = generateCubeFace(mVertVec);
+}
+
+void CMy2019302130011Doc::inittri_pyramid()
+{
+	mVertVec = generatetriVert();
+	mFaceVec = generatetriFace(mVertVec);
+}
+
+std::vector<CPoint3d> CMy2019302130011Doc::generateCubeVert()
+{
+	std::vector<CPoint3d> ptVec;
+	double size = 500;
+	double n = -(size / 2.0), p = size / 2.0;
+
+	//8个顶点
+	ptVec.push_back(CPoint3d(n, n, n));
+	ptVec.push_back(CPoint3d(p, n, n));
+	ptVec.push_back(CPoint3d(n, p, n));
+	ptVec.push_back(CPoint3d(n, n, p));
+	ptVec.push_back(CPoint3d(p, p, n));
+	ptVec.push_back(CPoint3d(p, n, p));
+	ptVec.push_back(CPoint3d(n, p, p));
+	ptVec.push_back(CPoint3d(p, p, p));
+
+	return ptVec;
+}
+
+std::vector<CPolygon3d> CMy2019302130011Doc::generateCubeFace(std::vector<CPoint3d>& vertVec)
+{
+	std::vector<CPolygon3d> faceVec;
+	//6个面
+	//调整好前三个点的顺序
+	faceVec.emplace_back(std::vector<CPoint3d*>{&vertVec[0], & vertVec[2], & vertVec[4], & vertVec[1]}); //底面
+	faceVec.emplace_back(std::vector<CPoint3d*>{&vertVec[5], & vertVec[7], & vertVec[6], & vertVec[3]}); //顶面
+	faceVec.emplace_back(std::vector<CPoint3d*>{&vertVec[1], & vertVec[4], & vertVec[7], & vertVec[5]}); //前面
+	faceVec.emplace_back(std::vector<CPoint3d*>{&vertVec[4], & vertVec[2], & vertVec[6], & vertVec[7]}); //右侧面
+	faceVec.emplace_back(std::vector<CPoint3d*>{&vertVec[3], & vertVec[0], & vertVec[1], & vertVec[5]}); //左侧面
+	faceVec.emplace_back(std::vector<CPoint3d*>{&vertVec[3], & vertVec[6], & vertVec[2], & vertVec[0]}); //后面
+	
+	return faceVec;
+}
+
+std::vector<CPoint3d> CMy2019302130011Doc::generatetriVert()
+{
+	std::vector<CPoint3d> ptVec;
+	double size = 500;
+	double n = -(size / 2.0), p = size / 2.0;
+
+	//8个顶点
+	ptVec.push_back(CPoint3d(n, n, n));
+	ptVec.push_back(CPoint3d(p, n, n));
+	ptVec.push_back(CPoint3d(p, p, n));
+	ptVec.push_back(CPoint3d(p, n, p));
+
+	return ptVec;
+}
+
+std::vector<CPolygon3d> CMy2019302130011Doc::generatetriFace(std::vector<CPoint3d>& vertVec)
+{
+	std::vector<CPolygon3d> faceVec;
+	//4个面
+	//调整好前三个点的顺序
+	faceVec.emplace_back(std::vector<CPoint3d*>{&vertVec[0], & vertVec[3], & vertVec[2]}); 
+	faceVec.emplace_back(std::vector<CPoint3d*>{&vertVec[1], & vertVec[2], & vertVec[3]}); 
+	faceVec.emplace_back(std::vector<CPoint3d*>{&vertVec[1], & vertVec[3], & vertVec[0]}); 
+	faceVec.emplace_back(std::vector<CPoint3d*>{&vertVec[1], & vertVec[0], & vertVec[2]});
+
+	return faceVec;
+}
+
+void CMy2019302130011Doc::drawPolyhedron(CClientDC* pDC, std::vector<CPolygon3d>& faceVec, bool doshadow) const
+{
+	for (auto &polygon : faceVec) {
+		polygon.visible = surfaceVisble(polygon, CPoint3d(0, 0, 1));
+	}
+
+	if (doshadow) {
+		pDC->SetROP2(R2_COPYPEN); //设置直接画方式
+		for (auto& polygon : faceVec) {
+			if (polygon.visible) {
+				std::vector<CPoint> pt2d{};
+				for (auto point : polygon.m_polygon)
+				{
+					pt2d.push_back(CPoint(point->x, point->y));
+				}
+				CBrush brush(polygon.color); //设置多边形填充颜色（即画刷）
+				CBrush* pOldBrush = pDC->SelectObject(&brush);
+				pDC->Polygon(pt2d.data(), pt2d.size());//调用多边形扫描线填充函数
+				pDC->SelectObject(pOldBrush);
+			}
+		}
+	}
+	else {
+		CPen pen(PS_SOLID, 1, RGB(0, 255, 0));//设置多边形边界颜色（即画笔）
+		CPen* pOldPen = pDC->SelectObject(&pen);
+
+		CBrush brush(m_crColor); //设置多边形填充颜色（即画刷）
+		CBrush* pOldBrush = pDC->SelectObject(&brush);
+
+		pDC->SetROP2(R2_COPYPEN); //设置直接画方式
+		for (auto &polygon : faceVec) {
+			if (polygon.visible) {
+				std::vector<CPoint> pt2d{};
+				for (auto point : polygon.m_polygon)
+				{
+					pt2d.push_back(CPoint(point->x, point->y));
+				}
+				pDC->Polygon(pt2d.data(), pt2d.size());//调用多边形扫描线填充函数
+			}
+		}
+
+
+		pDC->SelectObject(pOldPen);//恢复系统的画笔、画刷颜色设置
+		pDC->SelectObject(pOldBrush);
+
+	}
+
+}
+
+bool CMy2019302130011Doc::surfaceVisble(const CPolygon3d& polygon, const CPoint3d& sightVec)
+{
+	if (polygon.getNormalVector().dot(sightVec) > 0) return true;
+	return false;
+}
+
+std::vector<CPoint3d> CMy2019302130011Doc::project_Points(const std::vector<CPoint3d>& pointVec,
+	double _left, double _right, double _buttom, double _top, double _far, double _near)
+{
+	//正投影矩阵4*4
+	Eigen::Matrix4d ortho_project_mat;
+	ortho_project_mat <<
+		2.0 / (_right - _left),  0,                       0,                      -(_right + _left) / (_right - _left),
+		0,                       2.0 / (_top - _buttom),  0,                      -(_top + _buttom) / (_top - _buttom),
+		0,                       0,                       2.0 / (_far - _near),   -(_far + _near) / (_far - _near),
+		0,                       0,                       0,                      1;
+
+	std::vector<CPoint3d> project_ptVec;
+	project_ptVec.reserve(pointVec.size());
+	for (auto& pt : pointVec) {
+		Eigen::Vector4d proj_pt = ortho_project_mat * pt.toHomoPoint();
+		project_ptVec.push_back(CPoint3d(proj_pt(0), proj_pt(1), proj_pt(2)));
+	}
+	return project_ptVec;
+}
+
+std::vector<CPoint3d> CMy2019302130011Doc::rotate3d(const std::vector<CPoint3d>& ptVec, const CPoint3d& rotateVector)
+{
+	if (rotateVector.x == 0 && rotateVector.y == 0 && rotateVector.z == 0) {
+		return ptVec;
+	}
+	//用旋转向量构造旋转矩阵
+	Eigen::Matrix3d rot_mat;
+	double theta = rotateVector.norm();
+	CPoint3d n = (1 / theta) * rotateVector;
+	Eigen::Vector3d nv;
+	nv << n.x, n.y, n.z;
+	//罗格里格斯公式求旋转矩阵
+	rot_mat = cos(theta) * Eigen::Matrix3d::Identity() + (1 - cos(theta)) * nv * nv.transpose() + sin(theta) * n.toSkewSymMatrix();
+
+	//四阶齐次欧式变换矩阵
+	Eigen::Matrix4d eular_trans_mat = Eigen::Matrix4d::Zero();
+	eular_trans_mat.block(0, 0, 3, 3) = rot_mat;
+	eular_trans_mat(3, 3) = 1;
+
+	//旋转
+	std::vector<CPoint3d> rotated_PtVec{};  //旋转后的坐标
+	rotated_PtVec.reserve(ptVec.size());
+	for (auto& pt : ptVec)
+	{
+		Eigen::Vector4d homo_pt = pt.toHomoPoint();
+		Eigen::Vector4d rotated_pt = eular_trans_mat * homo_pt;
+		rotated_PtVec.emplace_back(rotated_pt[0], rotated_pt[1], rotated_pt[2]);
+	}
+
+	return rotated_PtVec;
+}
+
+std::vector<CPoint3d> CMy2019302130011Doc::setFit(const std::vector<CPoint3d>& ptVec)
+{
+	std::vector<CPoint3d> pt{};
+	pt.reserve(ptVec.size());
+	for (auto point : ptVec) {
+		pt.push_back(CPoint3d((point.x + 2) * 200, (point.y+2) * 200, (point.z+2) * 200));
+	}
+
+	return pt;
+}
+
+COLORREF CMy2019302130011Doc::phongLighting(const CPolygon3d& polygon, CPoint3d lightVector, COLORREF lightcolor, const CPoint3d param)
+{
+	COLORREF Color;
+	CPoint3d n = polygon.getNormalVector();
+	double costheta = n.dot(lightVector) / n.norm();
+	BYTE r = GetRValue(lightcolor), g = GetGValue(lightcolor), b = GetBValue(lightcolor);
+	r = r * param.x * costheta, g = g * param.y * costheta, b = b * param.z * costheta;
+	Color = RGB(r, g, b);
+	return Color;
+}
+
+
+
+
+
 
 BOOL CMy2019302130011Doc::OnNewDocument()
 {

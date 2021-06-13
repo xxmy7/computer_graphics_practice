@@ -93,6 +93,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>F:\计算机图形学实习\eigen-3.3.9\eigen-3.3.9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -186,6 +187,8 @@
     <ClInclude Include="2019302130011.h" />
     <ClInclude Include="2019302130011Doc.h" />
     <ClInclude Include="2019302130011View.h" />
+    <ClInclude Include="CPoint3d.h" />
+    <ClInclude Include="CPolygon3d.h" />
     <ClInclude Include="CSetCharDlg.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="MainFrm.h" />
@@ -197,6 +200,8 @@
     <ClCompile Include="2019302130011.cpp" />
     <ClCompile Include="2019302130011Doc.cpp" />
     <ClCompile Include="2019302130011View.cpp" />
+    <ClCompile Include="CPoint3d.cpp" />
+    <ClCompile Include="CPolygon3d.cpp" />
     <ClCompile Include="CSetCharDlg.cpp" />
     <ClCompile Include="MainFrm.cpp" />
     <ClCompile Include="pch.cpp">
