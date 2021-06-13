@@ -24,7 +24,12 @@ pdf为其中遇到的一些问题及解决办法。
 
 该仓库实现了以下菜单内容：
 
- 
+ 图形生成：DDA直线，中点直线，Bresenham圆，正负法圆，Bezier曲线，B样条曲线，Hermite曲线
+ 图形变化：平移，旋转，缩放，对称
+ 图形填充：扫描线填充，边缘填充，种子填充
+ 图形裁剪：Cohen-Sutherland算法，中点分割法，梁友栋-Barsky裁剪，多边形裁剪，圆的裁剪
+ 设置颜色和字符
+ 凸多面体的消隐（立方体和三棱锥），漫反射光照模型
 
 ![img](https://github.com/xxmy7/computer_graphics_practice/tree/master/img/clip_image002.png)![img](https://github.com/xxmy7/computer_graphics_practice/tree/master/img/clip_image004.png)![img](https://github.com/xxmy7/computer_graphics_practice/tree/master/img/clip_image006.png)![img](https://github.com/xxmy7/computer_graphics_practice/tree/master/img/clip_image008.png)![img](https://github.com/xxmy7/computer_graphics_practice/tree/master/img/clip_image010.png) ![img](https://github.com/xxmy7/computer_graphics_practice/tree/master/img/clip_image012.png)
 
