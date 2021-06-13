@@ -26,5 +26,5 @@ pdf为其中遇到的一些问题及解决办法。
 
  
 
-![img](img\clip_image002.png)![img](\img\clip_image004.png)![img](img\clip_image006.png)![img](img\clip_image008.png)![img](img\clip_image010.png) ![img](img\clip_image012.png)
+![img](https://github.com/xxmy7/computer_graphics_practice/tree/master/img/clip_image002.png)![img](https://github.com/xxmy7/computer_graphics_practice/tree/master/img/clip_image004.png)![img](https://github.com/xxmy7/computer_graphics_practice/tree/master/img/clip_image006.png)![img](https://github.com/xxmy7/computer_graphics_practice/tree/master/img/clip_image008.png)![img](https://github.com/xxmy7/computer_graphics_practice/tree/master/img/clip_image010.png) ![img](https://github.com/xxmy7/computer_graphics_practice/tree/master/img/clip_image012.png)
 
