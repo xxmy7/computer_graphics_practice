@@ -36,7 +36,7 @@ pdf为其中遇到的一些问题及解决办法。
  
  凸多面体的消隐（立方体和三棱锥），漫反射光照模型
 
-<img src = https://github.com/xxmy7/computer_graphics_practice/blob/master/img/clip_image002.png/><img src =https://github.com//xxmy7//computer_graphics_practice//tree//master//img//clip_image004.png/><img src =https://github.com//xxmy7//computer_graphics_practice//tree//master//img//clip_image006.png/><img src =https://github.com//xxmy7//computer_graphics_practice//tree//master//img//clip_image008.png)/><img src =https://github.com//xxmy7//computer_graphics_practice//tree//master//img//clip_image010.png/><img src =https://github.com//xxmy7//computer_graphics_practice//tree//master//img//clip_image012.png/>
+<img src = https://github.com/xxmy7/computer_graphics_practice/blob/master/img/clip_image002.png/><img src =https://github.com//xxmy7//computer_graphics_practice//blob//master//img//clip_image004.png/><img src =https://github.com//xxmy7//computer_graphics_practice//blob//master//img//clip_image006.png/><img src =https://github.com//xxmy7//computer_graphics_practice//blob//master//img//clip_image008.png)/><img src =https://github.com//xxmy7//computer_graphics_practice//blob//master//img//clip_image010.png/><img src =https://github.com//xxmy7//computer_graphics_practice//blob//master//img//clip_image012.png/>
 
 感谢<a href="https://github.com/xiaobaiwwl" target="_blank">wwl</a>实习期间的帮助！实习和考试复习一起搞太搞人了。
 
