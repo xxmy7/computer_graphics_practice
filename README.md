@@ -39,7 +39,7 @@ pdf为其中遇到的一些问题及解决办法。
 <img src = https://github.com/xxmy7/computer_graphics_practice/blob/master/img/clip_image002.png/>
 <img src = https://github.com/xxmy7/computer_graphics_practice/blob/master/img/clip_image004.png/>
 <img src = https://github.com/xxmy7/computer_graphics_practice/blob/master/img/clip_image006.png/>
-<img src = https://github.com/xxmy7/computer_graphics_practice/blob/master/img/clip_image008.png)/>
+<img src = https://github.com/xxmy7/computer_graphics_practice/blob/master/img/clip_image008.png/>
 <img src = https://github.com/xxmy7/computer_graphics_practice/blob/master/img/clip_image010.png/>
 <img src = https://github.com/xxmy7/computer_graphics_practice/blob/master/img/clip_image012.png/>
 
